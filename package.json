@@ -1,0 +1,23 @@
+{
+    "dependencies": {
+      "log4js": "2.5.3",
+      "express": "~4.15.5",
+      "cors": "^2.8.4",
+      "request-promise-native": "^1.0.5",
+      "xml2js": "0.4.17",
+      "dateformat": "2.0.0"
+    },
+  
+    "description": "HTTP server for mock service and proxy service.",
+    "license": "MIT",
+    "name": "http-mock-proxy-server",
+    "readme": "ERROR: No README data found!",
+    "repository": {
+      "type": "git",
+      "url": ""
+    },
+    "scripts": {
+      "start": "node ./server.js"
+    },
+    "version": "2.0.0"
+  }
