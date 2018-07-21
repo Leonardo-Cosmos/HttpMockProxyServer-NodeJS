@@ -2,7 +2,8 @@
 const express = require('express');
 const cors = require('cors');
 
-const simpleProxy = require('./router/simple-proxy-router')
+const simpleProxy = require('./router/simple-proxy-router');
+const mongoProxy = require('./router/mongo-proxy-router');
 
 const app = express();
  
@@ -12,5 +13,6 @@ app.use(cors({
 }));
 
 app.use('/simple-proxy', simpleProxy);
+app.use('/mongo-proxy', mongoProxy);
 
 module.exports = app;
