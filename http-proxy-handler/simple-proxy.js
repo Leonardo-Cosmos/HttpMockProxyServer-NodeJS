@@ -14,7 +14,7 @@ function invokeRemote(req, res, config) {
     logger.info(`Requested resource: ${resourceUrl}`);
 
     let remoteUri = `https://${config.remoteDomain}${config.remoteBaseUrl}${resourceUrl}`;
-    logger.debug(`Get data from remote. ${remoteUri}`);
+    logger.info(`Get data from remote ${remoteUri}`);
 
     rpn({
         uri: remoteUri,
@@ -22,7 +22,7 @@ function invokeRemote(req, res, config) {
         resolveWithFullResponse: true,
         rejectUnauthorized: false
     }).then(response => {
-        logger.info(`Access remote succeed, status: ${response.statusCode}. ${remoteUri}`)
+        logger.info(`Access remote succeed, status: ${response.statusCode}. ${remoteUri}`);
 
         let reasponseHeaders = response.headers;
         for (let headerKey in reasponseHeaders) {
