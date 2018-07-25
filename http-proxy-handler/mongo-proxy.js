@@ -8,37 +8,122 @@ const MongoClient = require('mongodb').MongoClient;
 
 const headerKeyAccessControlAllowOrigin = 'access-control-allow-origin';
 
+/**
+ * Get data from remote. If access remote successfully, save to MongoDB.
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} config 
+ */
 function invokeRemote(req, res, config) {
 
     let resourceUrl = req.url;
     logger.info(`Requested resource: ${resourceUrl}`);
 
-    let remoteUri = `https://${config.remoteDomain}${config.remoteBaseUrl}${resourceUrl}`;
-    logger.debug(`Get data from remote. ${remoteUri}`);
+    requestRemote(resourceUrl, config)
+        .then(remoteRes => {
+            if (remoteRes) {
+                sendResponse(res, remoteRes);
+                saveToMongoDB(resourceUrl, remoteRes, config);
+            } else {
+                res.end();
+            }
+        });
+}
 
-    rpn({
+/**
+ * Load data from MongoDB.
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} config 
+ */
+function invokeMongo(req, res, config) {
+
+    let resourceUrl = req.url;
+    logger.info(`Requested resource: ${resourceUrl}`);
+
+    loadFromMongoDB(resourceUrl, config)
+        .then(dbRes => {
+            if (dbRes) {
+                sendResponse(res, dbRes);
+            } else {
+                res.end();
+            }
+        });
+}
+
+/**
+ * Get data from remote. If access remote successfully, save to MongoDB.
+ * If access remote failed, load from MongoDB.
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} config 
+ */
+function invokeRemoteMongoMixed(req, res, config) {
+
+    let resourceUrl = req.url;
+    logger.info(`Requested resource: ${resourceUrl}`);
+
+    requestRemote(resourceUrl, config)
+        .then(remoteRes => {
+            if (remoteRes) {
+                sendResponse(res, remoteRes);
+                saveToMongoDB(resourceUrl, remoteRes, config);
+            } else {
+                loadFromMongoDB(resourceUrl, config)
+                    .then(dbRes => {
+                        if (dbRes) {
+                            sendResponse(res, dbRes);
+                        } else {
+                            res.end();
+                        }
+                    });
+            }
+        });
+}
+
+/**
+ * Load data from MongoDB. If load from MongoDB failed, get data from remote. 
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} config 
+ */
+function invokeMongoRemoteMixed(req, res, config) {
+
+    let resourceUrl = req.url;
+    logger.info(`Requested resource: ${resourceUrl}`);
+
+    loadFromMongoDB(resourceUrl, config)
+        .then(dbRes => {
+            if (dbRes) {
+                sendResponse(res, dbRes);
+            } else {
+                requestRemote(resourceUrl, config)
+                    .then(remoteRes => {
+                        if (remoteRes) {
+                            sendResponse(res, remoteRes);
+                        } else {
+                            res.end();
+                        }
+                    });
+            }
+        });
+}
+
+function requestRemote(resourceUrl, config) {
+
+    let remoteUri = `https://${config.remoteDomain}${config.remoteBaseUrl}${resourceUrl}`;
+    logger.info(`Get data from remote: ${remoteUri}`);
+
+    return rpn({
         uri: remoteUri,
         method: 'GET',
         resolveWithFullResponse: true,
         rejectUnauthorized: false
     }).then(remoteRes => {
         logger.info(`Access remote succeed, status: ${remoteRes.statusCode}. ${remoteUri}`);
-
-        sendResponse(res, remoteRes);
         return Promise.resolve(remoteRes);
-    }).then(
-        remoteRes => saveToMongoDB(config, resourceUrl, remoteRes)
-    ).catch(err => {
+    }).catch(err => {
         logger.error(`Access remote failed, status: ${err.statusCode}. ${remoteUri}`);
-
-        loadFromMongoDB(resourceUrl, config)
-            .then(dbRes => {
-                if (dbRes) {
-                    sendResponse(res, dbRes);
-                } else {
-                    res.end();
-                }
-            });
     });
 }
 
@@ -54,7 +139,7 @@ function sendResponse(res, dataRes) {
     res.send(dataRes.body);
 }
 
-function saveToMongoDB(config, resourceUrl, response) {
+function saveToMongoDB(resourceUrl, response, config) {
     logger.info(`Save ${resourceUrl} to MongoDB`);
 
     let mongoClient;
@@ -134,5 +219,8 @@ function loadFromMongoDB(resourceUrl, config) {
 }
 
 module.exports = {
-    invokeRemote
+    invokeRemote,
+    invokeMongo,
+    invokeRemoteMongoMixed,
+    invokeMongoRemoteMixed
 }
