@@ -7,9 +7,10 @@ const config = require('./mongo-proxy-handler.config');
 
 function handle(req, res) {
 
-    let remoteConfig = new RemoteConfig(config.remoteDomain, config.remoteBaseUri);
+    let remoteConfig = new RemoteConfig(config.remoteProtocol, config.remoteDomain, config.remoteBaseUri);
     let mongoConfig = new MongoConfig(config.mongoUrl, config.mongoDbName, config.mongoCollectionName);
-    mongoProxy.invokeMongoRemoteMixed(req, res, remoteConfig, mongoConfig);
+    mongoProxy.invokeRemoteMongoMixed(req, res, remoteConfig, mongoConfig);
+    //mongoProxy.invokeMongoRemoteMixed(req, res, mongoConfig, remoteConfig);
 }
 
 module.exports = {

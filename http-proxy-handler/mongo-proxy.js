@@ -1,10 +1,14 @@
 /* 2018/7/21 */
 'use strict';
 const log4js = require('log4js');
-const rpn = require('request-promise-native');
+const request = require('request');
 const MongoClient = require('mongodb').MongoClient;
 
 const ResponseData = require('./response-data');
+
+const http = require('http');
+const IncomingMessage = http.IncomingMessage;
+const ServerResponse = http.ServerResponse;
 const RemoteConfig = require('./remote-config');
 const MongoConfig = require('./mongo-config');
 
@@ -14,8 +18,8 @@ const headerKeyAccessControlAllowOrigin = 'access-control-allow-origin';
 
 /**
  * Get data from remote. If access remote successfully, save to MongoDB.
- * @param {*} req 
- * @param {*} res 
+ * @param {IncomingMessage} req 
+ * @param {ServerResponse} res 
  * @param {RemoteConfig} remoteConfig
  * @param {MongoConfig} mongoConfig 
  */
@@ -37,8 +41,8 @@ function invokeRemote(req, res, remoteConfig, mongoConfig) {
 
 /**
  * Load data from MongoDB.
- * @param {*} req 
- * @param {*} res 
+ * @param {IncomingMessage} req 
+ * @param {ServerResponse} res 
  * @param {MongoConfig} mongoConfig 
  */
 function invokeMongo(req, res, mongoConfig) {
@@ -59,8 +63,8 @@ function invokeMongo(req, res, mongoConfig) {
 /**
  * Get data from remote. If access remote successfully, save to MongoDB.
  * If access remote failed, load from MongoDB.
- * @param {*} req 
- * @param {*} res 
+ * @param {IncomingMessage} req 
+ * @param {ServerResponse} res 
  * @param {RemoteConfig} remoteConfig 
  * @param {MongoConfig} mongoConfig 
  */
@@ -89,8 +93,8 @@ function invokeRemoteMongoMixed(req, res, remoteConfig, mongoConfig) {
 
 /**
  * Load data from MongoDB. If load from MongoDB failed, get data from remote. 
- * @param {*} req 
- * @param {*} res 
+ * @param {IncomingMessage} req 
+ * @param {ServerResponse} res 
  * @param {MongoConfig} mongoConfig
  * @param {RemoteConfig} remoteConfig 
  */
@@ -108,6 +112,7 @@ function invokeMongoRemoteMixed(req, res, mongoConfig, remoteConfig) {
                     .then(remoteData => {
                         if (remoteData) {
                             sendResponse(res, remoteData);
+                            saveToMongoDB(resourceUri, remoteData, mongoConfig);
                         } else {
                             res.end();
                         }
@@ -123,17 +128,35 @@ function invokeMongoRemoteMixed(req, res, mongoConfig, remoteConfig) {
  */
 function requestRemote(resourceUri, config) {
 
-    let remoteUri = `https://${config.remoteDomain}${config.remoteBaseUri}${resourceUri}`;
+    let remoteUri = `${config.protocol}://${config.domain}${config.baseUri}${resourceUri}`;
     logger.info(`Get data from remote: ${remoteUri}`);
 
-    return rpn({
-        uri: remoteUri,
-        method: 'GET',
-        resolveWithFullResponse: true,
-        rejectUnauthorized: false
-    }).then(response => {
-        logger.info(`Access remote succeed, status: ${response.statusCode}. ${remoteUri}`);
-        let responseData = new ResponseData(response.headers, response.body);
+    return new Promise((resolve, reject) => {
+        let result = {};
+        let chunks = [];
+        request.get(remoteUri)
+            .on('response', response => {
+                result.statusCode = response.statusCode;
+                result.headers = response.headers;
+                if (result.bodyBuffer) {
+                    resolve(result);
+                }
+            })
+            .on('error', err => reject(err))
+            .on('data', chunk => {
+                chunks.push(chunk);
+            })
+            .on('end', () => {
+                result.bodyBuffer = Buffer.concat(chunks);
+                if (result.headers) {
+                    resolve(result);
+                }
+            });
+    }).then(result => {
+        logger.info(`Access remote successfully, status: ${result.statusCode}. ${remoteUri}`);
+
+        let body = ResponseData.buildBody(result.headers, result.bodyBuffer);
+        let responseData = new ResponseData(result.headers, body);
         return Promise.resolve(responseData);
     }).catch(err => {
         logger.error(`Access remote failed, status: ${err.statusCode}. ${remoteUri}`);
@@ -142,7 +165,7 @@ function requestRemote(resourceUri, config) {
 
 /**
  * Send data as HTTP server.
- * @param {*} res 
+ * @param {ServerResponse} res 
  * @param {ResponseData} responseData 
  */
 function sendResponse(res, responseData) {
@@ -154,7 +177,8 @@ function sendResponse(res, responseData) {
             res.setHeader(headerKey, responseHeaders[headerKey]);
         }
     }
-    res.send(responseData.body);
+    let bodyBuffer = ResponseData.parseBody(responseData.headers, responseData.body);
+    res.write(bodyBuffer);
 }
 
 /**
