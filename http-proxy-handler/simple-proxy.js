@@ -43,4 +43,4 @@ function invokeRemote(req, res, config) {
 
 module.exports = {
     invokeRemote
-}
+};
