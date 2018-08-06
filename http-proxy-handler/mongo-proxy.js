@@ -134,7 +134,12 @@ function requestRemote(resourceUri, config) {
     return new Promise((resolve, reject) => {
         let result = {};
         let chunks = [];
-        request.get(remoteUri)
+        request.get({
+                url: remoteUri,
+                agentOptions: {
+                    rejectUnauthorized: false
+                }
+            })
             .on('response', response => {
                 result.statusCode = response.statusCode;
                 result.headers = response.headers;
@@ -142,7 +147,9 @@ function requestRemote(resourceUri, config) {
                     resolve(result);
                 }
             })
-            .on('error', err => reject(err))
+            .on('error', err => {
+                reject(err);
+            })
             .on('data', chunk => {
                 chunks.push(chunk);
             })
@@ -159,7 +166,7 @@ function requestRemote(resourceUri, config) {
         let responseData = new ResponseData(result.headers, body);
         return Promise.resolve(responseData);
     }).catch(err => {
-        logger.error(`Access remote failed, status: ${err.statusCode}. ${remoteUri}`);
+        logger.error(`Access remote failed, status: ${JSON.stringify(err)}. ${remoteUri}`);
     });
 }
 
