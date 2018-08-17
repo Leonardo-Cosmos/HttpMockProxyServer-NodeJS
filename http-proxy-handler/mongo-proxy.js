@@ -15,6 +15,7 @@ const MongoConfig = require('./mongo-config');
 const logger = log4js.getLogger('MongoProxy');
 
 const headerKeyAccessControlAllowOrigin = 'access-control-allow-origin';
+const headerKeyContentLength = 'content-length';
 
 /**
  * Get data from remote. If access remote successfully, save to MongoDB.
@@ -176,15 +177,19 @@ function requestRemote(resourceUri, config) {
  * @param {ResponseData} responseData 
  */
 function sendResponse(res, responseData) {
+    let bodyBuffer = ResponseData.parseBody(responseData.headers, responseData.body);
+
     let responseHeaders = responseData.headers;
     for (let headerKey in responseHeaders) {
         if (headerKey === headerKeyAccessControlAllowOrigin) {
             continue;
+        } else if (headerKey === headerKeyContentLength) {
+            res.setHeader(headerKeyContentLength, bodyBuffer.length);
         } else {
             res.setHeader(headerKey, responseHeaders[headerKey]);
         }
     }
-    let bodyBuffer = ResponseData.parseBody(responseData.headers, responseData.body);
+
     res.write(bodyBuffer);
 }
 
