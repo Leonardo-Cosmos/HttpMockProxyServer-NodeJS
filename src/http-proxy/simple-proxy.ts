@@ -5,7 +5,7 @@ import * as rpn from 'request-promise-native';
 
 import { Request, Response } from 'express';
 
-import { SimpleProxyConfig } from './model/simple-proxy-config';
+import { RemoteConfig } from './model/remote-config';
 import { ResponseResult } from './model/response-result';
 
 const logger = log4js.getLogger('SimpleProxy');
@@ -15,12 +15,12 @@ const headerKeyContentType = 'content-type';
 
 export class SimpleProxy {
 
-    invokeRemoteByRPN(req: Request, res: Response, config: SimpleProxyConfig) {
+    invokeRemoteByRPN(req: Request, res: Response, config: RemoteConfig) {
 
         let resourceUrl = req.url;
         logger.info(`Requested resource: ${resourceUrl}`);
 
-        let remoteUri = `https://${config.remoteDomain}${config.remoteBaseUrl}${resourceUrl}`;
+        let remoteUri = `https://${config.domain}${config.baseUri}${resourceUrl}`;
         logger.info(`Get data from remote ${remoteUri}`);
 
         rpn({
@@ -55,12 +55,12 @@ export class SimpleProxy {
      * @param res 
      * @param config 
      */
-    invokeRemote(method: string, req: Request, res: Response, config: SimpleProxyConfig) {
+    invokeRemote(method: string, req: Request, res: Response, config: RemoteConfig) {
 
         let resourceUrl = req.url;
         logger.info(`Requested resource: ${resourceUrl}`);
 
-        let remoteUri = `${config.remoteProtocol}://${config.remoteDomain}${config.remoteBaseUrl}${resourceUrl}`;
+        let remoteUri = `${config.protocol}://${config.domain}${config.baseUri}${resourceUrl}`;
         logger.info(`Invoke remote ${remoteUri}`);
 
         new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ export class SimpleProxy {
             res.write(result.bodyBuffer);
         }).catch(err => {
             logger.error(`Access remote failed, status: ${err.statusCode}. ${remoteUri}`);
-            res.end(err.error);
+            res.send(err.error);
         });
     }
 }
