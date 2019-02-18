@@ -10,13 +10,19 @@ export class MongoProxyHandler implements HttpHandler {
 
     private mongoProxy: MongoProxy;
 
+    private remoteConfig: RemoteConfig;
+
+    private mongoConfig: MongoConfig;
+
     constructor() {
         this.mongoProxy = new MongoProxy();
+        this.remoteConfig = remoteConfig;
+        this.mongoConfig = mongoConfig;
     }
 
     handle(req: Request, res: Response) {
-        this.mongoProxy.invokeRemoteMongoMixed(req, res, remoteConfig, mongoConfig);
-        // this.mongoProxy.invokeMongoRemoteMixed(req, res, mongoConfig, remoteConfig);
+        this.mongoProxy.invokeRemoteMongoMixed(req, res, this.remoteConfig, this.mongoConfig);
+        // this.mongoProxy.invokeMongoRemoteMixed(req, res, this.mongoConfig, this.remoteConfig);
     }
 
 }

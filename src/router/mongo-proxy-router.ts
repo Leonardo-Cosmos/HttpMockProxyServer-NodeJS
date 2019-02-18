@@ -4,9 +4,7 @@ import {
     MongoProxyHandler
 } from '../http-handler/mongo-proxy-handler';
 
-const router = express.Router();
+export const router = express.Router();
 let mongoProxyHandler = new MongoProxyHandler();
 
-router.get('/*', mongoProxyHandler.handle);
-
-module.exports = router;
+router.get('/*', mongoProxyHandler.handle.bind(mongoProxyHandler));

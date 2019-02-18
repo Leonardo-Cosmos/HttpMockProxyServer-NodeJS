@@ -1,3 +1,4 @@
+/* 2018/7/14 */
 import * as http from 'http';
 import * as log4js from 'log4js';
 import app from './app';
@@ -16,11 +17,13 @@ log4js.configure({
     }
   });
 
-const port = process.env.PORT || 32180
+const port = process.env.PORT || 32080
 
 const logger = log4js.getLogger('Server');
 
 app.listen(port);
+logger.info(`Server is listening on ${port}`)
+
 app.on('error', onError);
 //app.on('listening', onListening);
 
@@ -61,4 +64,3 @@ function onListening() {
         'port ' + addr.port;
     logger.info('Listening on ' + bind);*/
 }
-

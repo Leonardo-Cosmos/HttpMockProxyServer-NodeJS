@@ -1,4 +1,6 @@
-import * as express from 'express'
+/* 2018/7/14 */
+import * as express from 'express';
+import * as cors from 'cors';
 import * as simpleProxyRouter from './router/simple-proxy-router';
 import * as mongoProxyRouter from './router/mongo-proxy-router';
 
@@ -10,16 +12,25 @@ class App {
         this.mountRoutes();
     }
 
-    private mountRoutes(): void {
-        /*const router = express.Router();
-        router.get('/', (req, res) => {
+    private getDefaultRoute(): express.Router {
+        const router = express.Router();
+        return router.get('/', (req, res) => {
             res.json({
                 message: 'Hello World!'
             });
-        })
-        this.express.use('/', router);*/
-        this.express.use('/simple-proxy', simpleProxyRouter as express.Router);
-        this.express.use('/mongo-proxy', mongoProxyRouter as express.Router);
+        });
+    }
+
+    private mountRoutes(): void {
+        this.express.use(cors({
+            origin: ['localhost', /10\.202\.\d+\.\d+/, /192\.168\.\d+\.\d+/, /172\.20\.\d+\.\d+/],
+            credentials: true
+        }));
+
+        this.express.use('/', this.getDefaultRoute());
+
+        this.express.use('/simple-proxy', simpleProxyRouter.router);
+        this.express.use('/mongo-proxy', mongoProxyRouter.router);
     }
 }
 
