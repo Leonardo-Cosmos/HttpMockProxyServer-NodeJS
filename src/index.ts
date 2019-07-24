@@ -1,5 +1,7 @@
 /* 2018/7/14 */
 import * as http from 'http';
+import * as https from 'https';
+import * as fs from 'fs';
 import * as log4js from 'log4js';
 import app from './app';
 
@@ -17,20 +19,28 @@ log4js.configure({
     }
   });
 
-const port = process.env.PORT || 32080
-
 const logger = log4js.getLogger('Server');
 
-app.listen(port);
-logger.info(`Server is listening on ${port}`)
+const httpPort = 32080;
+http.createServer(app).listen(httpPort);
+logger.info(`HTTP Server is listening on ${httpPort}`);
 
-app.on('error', onError);
+const httpsPort = 32443;
+var httpsOptions = {
+  key: fs.readFileSync('ssl-cert/server.key'), 
+  cert: fs.readFileSync('ssl-cert/server.crt')
+};
+https.createServer(httpsOptions, app).listen(httpsPort);
+logger.info(`HTTPS Server is listening on ${httpsPort}`);
+
+//app.on('error', onError);
 //app.on('listening', onListening);
 
 /**
  * Event listener for HTTP server "error" event.
  */
 function onError(error) {
+    /*
     if (error.syscall !== 'listen') {
         throw error;
     }
@@ -52,6 +62,7 @@ function onError(error) {
         default:
             throw error;
     }
+    */
 }
 
 /**
